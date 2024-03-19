@@ -87,6 +87,17 @@ def update_screen(ai_settings, screen, stats, sb, ship, aliens, bullets,
 	"""更新屏幕上的图像，并切换到新屏幕"""
 	# 每次循环时都重绘屏幕
 	screen.fill(ai_settings.bg_color)
+	
+	# 绘制物体
+	draw_objects(bullets, ship, aliens, screen)
+	# 绘制信息界面
+	draw_interface(sb, stats, play_button)
+	
+	# 让最近绘制的屏幕可见
+	pygame.display.flip()
+	
+def draw_objects(bullets, ship, aliens, screen):
+	"""绘制画面中的物体"""
 	# 在飞船和外星人后面重绘所有子弹
 	for bullet in bullets.sprites():
 		bullet.draw_bullet()
@@ -94,29 +105,30 @@ def update_screen(ai_settings, screen, stats, sb, ship, aliens, bullets,
 	ship.blitme()
 	# 绘制外星人群
 	aliens.draw(screen)
+	
+def draw_interface(sb, stats, play_button):
+	"""绘制信息界面"""
 	# 显示得分
 	sb.show_score()
-
 	# 如果游戏处于非活动状态，就绘制Play按钮
 	if not stats.game_active:
-		play_button.draw_button()
-	
-	# 让最近绘制的屏幕可见
-	pygame.display.flip()
+		play_button.draw_button()	
 
 def update_bullets(ai_settings, screen, stats, sb, ship, aliens, bullets):
 	"""更新子弹的位置，并删除已消失的子弹"""
 	# 更新子弹的位置
 	bullets.update()
-
-	#删除已消失的子弹
-	for bullet in bullets.copy():
-		if bullet.rect.bottom <= 0:
-			bullets.remove(bullet)
+	# 删除已离开屏幕的子弹
+	remove_bullets(bullets)
 
 	check_bullet_alien_collisions(ai_settings, screen, stats, sb, ship,
 		aliens, bullets)
 
+def remove_bullets(bullets):
+	"""删除已离开屏幕的子弹"""
+	for bullet in bullets.copy():
+		if bullet.rect.bottom <= 0:
+			bullets.remove(bullet)
 
 def check_bullet_alien_collisions(ai_settings, screen, stats, sb, ship,
 		aliens, bullets):
@@ -125,14 +137,17 @@ def check_bullet_alien_collisions(ai_settings, screen, stats, sb, ship,
 	collisions = pygame.sprite.groupcollide(bullets, aliens, True, True)
 
 	if collisions:
-		for aliens in collisions.values():
-			stats.score += ai_settings.alien_points * len(aliens)
-			sb.prep_score()
+		gain_scores(collisions, stats, ai_settings, sb)
 		check_high_score(stats, sb)
 
 	if len(aliens) == 0:
 		start_new_level(bullets, ai_settings, stats, sb, screen, ship, aliens)
 
+def gain_scores(collisions, stats, ai_settings, sb):
+	"""击中外星人时增加得分"""
+	for aliens in collisions.values():
+		stats.score += ai_settings.alien_points * len(aliens)
+		sb.prep_score()
 
 def start_new_level(bullets, ai_settings, stats, sb, screen, ship, aliens):
 	"""删除现有的子弹，加快游戏节奏，并创建一群新的外星人"""
